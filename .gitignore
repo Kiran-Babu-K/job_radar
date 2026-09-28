@@ -1,0 +1,8 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+
+# Note: config.json is NOT ignored — it needs to be committed so the
+# GitHub Actions workflow can read your search criteria and profile.
+# If you'd rather keep it out of git history, use a private repo instead.
