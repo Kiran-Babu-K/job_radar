@@ -1,0 +1,48 @@
+name: Job Radar search
+
+on:
+  schedule:
+    # Every 6 hours. Free-tier Adzuna/Gemini/Groq quotas are generous but not
+    # unlimited — this cadence is a safe default. Tighten or loosen it to
+    # taste once you know your real usage.
+    - cron: "17 */6 * * *"
+  workflow_dispatch: {}   # lets the dashboard's "Run now" button (or you, from
+                          # the Actions tab) trigger a run on demand
+
+permissions:
+  contents: write   # needed so this workflow can commit data/jobs.json back
+
+concurrency:
+  group: job-radar-search
+  cancel-in-progress: false
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run search & scoring pipeline
+        env:
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: node scripts/search.mjs
+
+      - name: Commit updated job data
+        run: |
+          git config user.name "job-radar-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/jobs.json
+          if git diff --cached --quiet; then
+            echo "No changes to data/jobs.json — nothing to commit."
+          else
+            git commit -m "Update job data ($(date -u +'%Y-%m-%d %H:%M UTC'))"
+            git push
+          fi
