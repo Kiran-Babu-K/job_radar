@@ -1,0 +1,50 @@
+{
+  "candidate": {
+    "name": "Your Name",
+    "email": "you@example.com",
+    "phone": "+91 00000 00000",
+    "linkedin": "linkedin.com/in/your-handle"
+  },
+  "search": {
+    "titles": ["Program Manager", "Business Analyst"],
+    "location": "Bengaluru",
+    "country": "in",
+    "salaryFloor": 1800000,
+    "currency": "INR"
+  },
+  "scoring": {
+    "fitThreshold": 6
+  },
+  "llm": {
+    "provider": "gemini",
+    "model": "gemini-1.5-flash"
+  },
+  "profile": {
+    "education": "Your Degree, Field — University Name (Start–End)",
+    "certifications": [
+      "A certification you actually hold",
+      "Another certification you actually hold"
+    ],
+    "experience": [
+      {
+        "company": "Company Name",
+        "role": "Your Role Title",
+        "location": "City, Country",
+        "dates": "Mon YYYY – Present",
+        "bullets": [
+          "A real, truthful accomplishment from this role — specific, with a number if you have one.",
+          "Another real bullet. The AI will only ever reorder and reword these — it is instructed never to invent new ones."
+        ]
+      },
+      {
+        "company": "Previous Company",
+        "role": "Previous Role Title",
+        "location": "City, Country",
+        "dates": "Mon YYYY – Mon YYYY",
+        "bullets": [
+          "A real bullet from this earlier role."
+        ]
+      }
+    ]
+  }
+}
