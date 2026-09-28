@@ -1,0 +1,984 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Radar</title>
+<style>
+  :root{
+    --ink:#1B3B5F; --ink-soft:#3D5A80; --line:#5C7A9E;
+    --bg:#F5F7FA; --surface:#FFFFFF; --surface-2:#EDF1F6;
+    --accent:#C77D3E; --good:#2F7A4F; --good-bg:#E7F3EC;
+    --warn:#B8862B; --warn-bg:#FBF1DF;
+    --text:#1C2733; --text-dim:#5B6B7C; --border:#DCE3EC;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#9FC0E8; --ink-soft:#7FA6D6; --line:#3D5A80;
+      --bg:#101722; --surface:#161F2C; --surface-2:#1C2734;
+      --accent:#E0985A; --good:#5FBE85; --good-bg:#173225;
+      --warn:#E0B25C; --warn-bg:#332708;
+      --text:#E7ECF2; --text-dim:#93A2B4; --border:#26313F;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#9FC0E8; --ink-soft:#7FA6D6; --line:#3D5A80;
+    --bg:#101722; --surface:#161F2C; --surface-2:#1C2734;
+    --accent:#E0985A; --good:#5FBE85; --good-bg:#173225;
+    --warn:#E0B25C; --warn-bg:#332708;
+    --text:#E7ECF2; --text-dim:#93A2B4; --border:#26313F;
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Sans", system-ui, sans-serif;
+  }
+  h1,h2,h3{font-family:"Fraunces", Georgia, serif; margin:0;}
+
+  .shell{display:flex; align-items:flex-start; min-height:100vh;}
+  .sidebar{
+    flex:0 0 220px; width:220px; box-sizing:border-box; background:var(--ink); color:#EAF1FA;
+    padding:26px 16px; display:flex; flex-direction:column; gap:4px;
+    position:sticky; top:0; min-height:100vh;
+  }
+  .sidebar .brand{font-family:"Fraunces",serif; font-size:19px; font-weight:600; color:#fff; margin:0 4px 16px;}
+  .navitem{
+    display:block; width:100%; text-align:left; background:transparent; border:none;
+    color:#C6D6EA; font-family:inherit; font-size:14px; padding:10px 12px; border-radius:8px;
+    cursor:pointer; min-height:38px; transition:background .15s, color .15s;
+  }
+  .navitem:hover{background:rgba(255,255,255,.08); color:#fff;}
+  .navitem.active{background:var(--ink-soft); color:#fff; font-weight:600;}
+  .main{flex:1 1 auto; min-width:0; padding-inline:16px; padding-block:24px 48px;}
+  .wrap{max-width:980px; margin:0 auto;}
+
+  @media (max-width:760px){
+    .shell{flex-direction:column;}
+    .sidebar{
+      position:relative; min-height:auto; width:100%; flex-direction:row; align-items:center;
+      overflow-x:auto; gap:6px; padding:12px 16px;
+    }
+    .sidebar .brand{margin:0 10px 0 0; white-space:nowrap;}
+    .navitem{width:auto; white-space:nowrap; flex:0 0 auto;}
+  }
+
+  header.top{
+    display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; justify-content:space-between;
+    margin-bottom:16px;
+  }
+  header.top .greeting{margin:0 0 2px; font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em;}
+  header.top h1{font-size:clamp(28px,4vw,36px); color:var(--ink); font-weight:600; text-wrap:balance;}
+  header.top p{margin:6px 0 0; color:var(--text-dim); font-size:14px; max-width:46ch;}
+  .headerCta{display:flex; flex-direction:column; align-items:stretch; gap:6px; min-width:230px;}
+  .headerCta .apply{text-align:center;}
+  .runNowStatus{font-size:11px; color:var(--text-dim); text-align:right; min-height:14px;}
+  .refresh-note{font-size:12px; color:var(--text-dim); text-align:right;}
+  .refresh-note strong{color:var(--ink-soft);}
+
+  .autoBanner{
+    display:flex; align-items:center; gap:8px; background:var(--good-bg); color:var(--good);
+    border:1px solid var(--good); border-radius:10px; padding:10px 14px; font-size:13px;
+    font-weight:600; margin-bottom:20px;
+  }
+  .autoBanner .dot{width:8px; height:8px; border-radius:50%; background:var(--good); flex:0 0 auto;}
+  .autoBanner.warn{background:var(--warn-bg); color:var(--warn); border-color:var(--warn);}
+  .autoBanner.warn .dot{background:var(--warn);}
+
+  .sectionHeading{font-size:18px; color:var(--ink); font-weight:600; margin:22px 0 12px;}
+  .infoPanel{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:16px 18px; font-size:13.5px; color:var(--text-dim); line-height:1.7;
+  }
+  .infoPanel h3{font-size:14px; color:var(--text); margin-bottom:8px;}
+  .infoPanel ul{margin:0; padding-left:20px;}
+  .infoPanel + .infoPanel{margin-top:14px;}
+
+  .fitPill{font-weight:700; padding:1px 7px; border-radius:999px; white-space:nowrap;}
+  .fitPill.high{background:var(--good-bg); color:var(--good);}
+  .fitPill.mid{background:var(--warn-bg); color:var(--warn);}
+  .fitPill.low{background:var(--surface-2); color:var(--text-dim);}
+  .badge.quickapply{background:var(--warn-bg); color:var(--warn);}
+
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:22px;}
+  .stat{background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px;}
+  .stat .n{font-family:"Fraunces",serif; font-size:26px; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .stat .l{font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em; margin-top:2px;}
+
+  .controls{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;}
+  .chip{
+    border:1px solid var(--border); background:var(--surface); color:var(--text-dim);
+    padding:8px 14px; border-radius:999px; font-size:13px; cursor:pointer; user-select:none;
+    transition:background .15s, color .15s, border-color .15s; min-height:36px;
+  }
+  .chip:hover{border-color:var(--line);}
+  .chip[aria-pressed="true"]{background:var(--ink); border-color:var(--ink); color:var(--surface);}
+  .search{
+    flex:1 1 200px; min-width:160px; border:1px solid var(--border); background:var(--surface);
+    border-radius:999px; padding:6px 14px; font-size:13px; color:var(--text); font-family:inherit;
+  }
+  .search:focus{outline:2px solid var(--line); outline-offset:1px;}
+
+  #list{display:flex; flex-direction:column; gap:12px;}
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:16px 18px; display:flex; flex-direction:column; gap:8px;
+  }
+  .card .row1{display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:baseline;}
+  .card .titles{display:flex; flex-direction:column; gap:2px;}
+  .card .role{font-family:"Fraunces",serif; font-size:18px; color:var(--text); font-weight:600;}
+  .card .company{font-size:13px; color:var(--ink-soft); font-weight:600;}
+  .card .meta{font-size:12px; color:var(--text-dim); display:flex; gap:10px; flex-wrap:wrap;}
+  .badge{
+    font-size:11px; padding:3px 9px; border-radius:999px; font-weight:600; letter-spacing:.02em;
+    white-space:nowrap; height:fit-content;
+  }
+  .badge.new{background:var(--good-bg); color:var(--good);}
+  .badge.watch{background:var(--warn-bg); color:var(--warn);}
+  .tags{display:flex; flex-wrap:wrap; gap:6px;}
+  .tag{
+    font-size:11px; background:var(--surface-2); color:var(--ink-soft); padding:3px 9px;
+    border-radius:6px; border:1px solid var(--border);
+  }
+  .fitReason{font-size:12.5px; color:var(--text-dim); font-style:italic;}
+  .actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .apply{
+    font-size:13px; font-weight:600; color:var(--surface); background:var(--ink);
+    padding:9px 16px; border-radius:8px; text-decoration:none; display:inline-block;
+    border:none; cursor:pointer; font-family:inherit; min-height:38px;
+  }
+  .apply:hover{background:var(--ink-soft);}
+  .copybtn{
+    font-size:12px; border:1px solid var(--border); background:transparent; color:var(--text-dim);
+    padding:8px 12px; border-radius:8px; cursor:pointer; font-family:inherit; min-height:38px;
+  }
+  .copybtn:hover{border-color:var(--line); color:var(--text);}
+  .statusSelect{
+    font-size:12px; border:1px solid var(--border); background:var(--surface); color:var(--text);
+    padding:8px 10px; border-radius:8px; font-family:inherit; cursor:pointer; min-height:38px;
+  }
+  .statusSelect.applied, .statusSelect.offer{border-color:var(--good); color:var(--good);}
+  .statusSelect.interview, .statusSelect.followup_due{border-color:var(--accent); color:var(--accent);}
+  .statusSelect.closed{border-color:var(--text-dim); color:var(--text-dim);}
+  .emailPanel{
+    display:none; border-top:1px dashed var(--border); padding-top:10px; margin-top:2px;
+    flex-direction:column; gap:8px;
+  }
+  .emailPanel.open{display:flex;}
+  .emailPanel label{font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim);}
+  .emailPanel input, .emailPanel textarea{
+    width:100%; border:1px solid var(--border); background:var(--surface-2); color:var(--text);
+    border-radius:8px; padding:8px 10px; font-family:inherit; font-size:13px; resize:vertical;
+  }
+  .emailPanel textarea{min-height:140px; line-height:1.5;}
+  .emailPanel .emailActions{display:flex; gap:8px; flex-wrap:wrap;}
+  .emailNote{font-size:11px; color:var(--text-dim); font-style:italic;}
+  .empty{
+    text-align:center; padding:48px 16px; color:var(--text-dim); font-size:14px;
+    border:1px dashed var(--border); border-radius:12px; background:var(--surface);
+  }
+  footer{margin-top:28px; font-size:12px; color:var(--text-dim); text-align:center; line-height:1.6;}
+
+  /* ---- Settings form ---- */
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:10px 0;}
+  .form-grid.single{grid-template-columns:1fr;}
+  @media (max-width:600px){ .form-grid{grid-template-columns:1fr;} }
+  .field{display:flex; flex-direction:column; gap:4px;}
+  .field label{font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim);}
+  .field input, .field select, .field textarea{
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text);
+    border-radius:8px; padding:8px 10px; font-family:inherit; font-size:13px;
+  }
+  .field textarea{min-height:70px; resize:vertical; line-height:1.5;}
+  .expBlock{
+    border:1px solid var(--border); border-radius:10px; padding:12px; margin:10px 0;
+    background:var(--surface-2);
+  }
+  .expBlock .expHead{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+  .expBlock .expHead b{font-size:13px;}
+  .smallBtn{
+    font-size:11px; border:1px solid var(--border); background:var(--surface); color:var(--text-dim);
+    padding:5px 10px; border-radius:6px; cursor:pointer; font-family:inherit;
+  }
+  .smallBtn:hover{border-color:var(--line); color:var(--text);}
+  .smallBtn.danger:hover{border-color:#C44; color:#C44;}
+  .formActions{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;}
+  .genOutput{
+    margin-top:10px; font-size:12px; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:8px; padding:10px; max-height:200px; overflow:auto; white-space:pre-wrap;
+    font-family:"IBM Plex Mono",monospace; display:none;
+  }
+  .genOutput.open{display:block;}
+
+  /* ---- CV print view ---- */
+  #cvView{display:none;}
+  #cvView.open{display:block;}
+  .cvPage{
+    background:#fff; color:#1B3B5F; font-family:"Avenir Next","IBM Plex Sans",sans-serif;
+    padding:40px 36px; border-radius:4px; max-width:760px; margin:0 auto; box-shadow:0 0 0 1px var(--border);
+  }
+  .cvPage .cvName{text-align:center; font-size:22px; font-weight:700; margin-bottom:4px;}
+  .cvPage .cvHeadline{text-align:center; font-size:13px; font-weight:700; color:#3D5A80; margin-bottom:4px;}
+  .cvPage .cvContact{text-align:center; font-size:11px; color:#3D5A80; margin-bottom:16px;}
+  .cvPage h4{
+    font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:#1B3B5F;
+    border-bottom:1px solid #5C7A9E; padding-bottom:4px; margin:16px 0 6px;
+  }
+  .cvPage p{font-size:12.5px; line-height:1.6; margin:0 0 8px;}
+  .cvPage .cvJobHead{font-weight:700; font-size:12.5px; margin-top:10px;}
+  .cvPage .cvJobMeta{font-size:11.5px; font-style:italic; color:#3D5A80; margin-bottom:4px;}
+  .cvPage ul{margin:0 0 8px; padding-left:18px;}
+  .cvPage li{font-size:12.5px; line-height:1.55; margin-bottom:3px;}
+  @media print{
+    .sidebar, header.top, .autoBanner, .stats, .infoPanel, .sectionHeading, .controls, #list, footer, .cvViewActions{
+      display:none !important;
+    }
+    #cvView{display:block !important;}
+    .cvPage{box-shadow:none; padding:0;}
+    body{background:#fff;}
+  }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+</head>
+<body>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebarNav">
+    <div class="brand">Job Radar</div>
+    <button class="navitem active" data-nav="overview" type="button">Overview</button>
+    <button class="navitem" data-nav="matches" type="button">Job matches</button>
+    <button class="navitem" data-nav="applications" type="button">Applications</button>
+    <button class="navitem" data-nav="cv" type="button">CV library</button>
+    <button class="navitem" data-nav="automation" type="button">Automation</button>
+    <button class="navitem" data-nav="settings" type="button">Search settings</button>
+  </nav>
+
+  <main class="main">
+    <div class="wrap">
+      <header class="top">
+        <div>
+          <p class="greeting" id="greeting">Welcome back</p>
+          <h1>Job Radar</h1>
+          <p>A self-updating job search dashboard: it searches free-tier job listings, scores each one against your real experience, and drafts a truthful, tailored CV for the ones worth applying to. No account, no server you have to run — just this page and a GitHub Actions schedule.</p>
+        </div>
+        <div class="headerCta">
+          <button id="runNowBtn" class="apply" type="button">Search now</button>
+          <div id="runNowStatus" class="runNowStatus"></div>
+          <div class="refresh-note" id="refreshNote"><span id="refreshNoteText">Loading…</span></div>
+        </div>
+      </header>
+
+      <div class="autoBanner" id="autoBanner"><span class="dot"></span> <span id="autoBannerText">Checking data…</span></div>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="empty" style="text-align:left; padding:14px 16px; margin-bottom:18px;">
+        <b>Applying:</b> this page never submits an application on your behalf — every "Apply / view posting" link opens the real posting, and every send is a real click from a real person.<br>
+        <b>Your data:</b> your stage changes (shortlisted, applied, interview, etc.) are saved only in this browser's local storage. Nothing you do here is uploaded anywhere.
+      </div>
+
+      <div id="automationPanel" class="infoPanel" hidden>
+        <h3>How the automation works</h3>
+        <p>A GitHub Actions workflow in this repo (<code>.github/workflows/job-search.yml</code>) runs on a schedule (every 6 hours by default) and:</p>
+        <ul>
+          <li>Searches Adzuna's free-tier job API for each title in your <code>config.json</code>, in your configured location</li>
+          <li>Sends each new posting to a free-tier LLM (Gemini or Groq — your choice) to score fit 0–10 against your real profile only</li>
+          <li>For postings that clear your fit threshold, asks the same model to build a tailored CV using ONLY your real, supplied bullets — never inventing anything</li>
+          <li>Commits the results to <code>data/jobs.json</code>, which this page reads — never regressing a stage you've already set</li>
+        </ul>
+        <p>Set it up: fork this repo → add <code>ADZUNA_APP_ID</code>, <code>ADZUNA_APP_KEY</code> and <code>LLM_API_KEY</code> as repo secrets (Settings → Secrets and variables → Actions) → copy <code>config.example.json</code> to <code>config.json</code> with your real details (the Search settings tab can generate this for you) → commit it → enable GitHub Pages (Settings → Pages → Deploy from a branch) → enable Actions if prompted. Full walkthrough in the README.</p>
+      </div>
+
+      <div id="runNowPanel" class="infoPanel" hidden>
+        <h3>Run now, on demand</h3>
+        <p>This calls GitHub's API to trigger the <code>job-search.yml</code> workflow immediately, instead of waiting for the next scheduled run. It needs a personal access token with permission to trigger workflows in <em>your own</em> fork.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label for="ghRepo">GitHub repo (owner/name)</label>
+            <input type="text" id="ghRepo" placeholder="yourname/job-radar">
+          </div>
+          <div class="field">
+            <label for="ghToken">Personal access token</label>
+            <input type="password" id="ghToken" placeholder="github_pat_...">
+          </div>
+        </div>
+        <p style="margin-top:2px;"><b>Security note:</b> use a <em>fine-grained</em> token scoped only to this one repo, with just the "Actions: write" permission — never a broad classic token. It's stored only in this browser's local storage and is sent only to <code>api.github.com</code>, but any script that can read this page's local storage could read it too, so don't use this on a shared or public computer.</p>
+        <div class="formActions">
+          <button class="copybtn" id="saveGhSettings" type="button">Save</button>
+          <span id="ghSaveStatus" style="font-size:12px; color:var(--text-dim);"></span>
+        </div>
+      </div>
+
+      <div id="settingsPanel" class="infoPanel" hidden>
+        <h3>Generate your config.json</h3>
+        <p>Fill this in with your own real, truthful details. It never leaves your browser — download or copy it, then commit it to your fork as <code>config.json</code> so the automation can read it. The AI is instructed to only reorder and reword the bullets you give it below — it will never invent a skill, number, or accomplishment.</p>
+
+        <h4 style="margin:14px 0 4px; font-size:13px; color:var(--text);">Candidate</h4>
+        <div class="form-grid">
+          <div class="field"><label>Full name</label><input type="text" id="cfg_name" placeholder="Your Name"></div>
+          <div class="field"><label>Email</label><input type="text" id="cfg_email" placeholder="you@example.com"></div>
+          <div class="field"><label>Phone</label><input type="text" id="cfg_phone" placeholder="+91 00000 00000"></div>
+          <div class="field"><label>LinkedIn</label><input type="text" id="cfg_linkedin" placeholder="linkedin.com/in/your-handle"></div>
+        </div>
+
+        <h4 style="margin:14px 0 4px; font-size:13px; color:var(--text);">Search criteria</h4>
+        <div class="form-grid">
+          <div class="field" style="grid-column:1/-1;"><label>Job titles to search (comma-separated)</label><input type="text" id="cfg_titles" placeholder="Program Manager, Business Analyst"></div>
+          <div class="field"><label>Location</label><input type="text" id="cfg_location" placeholder="Bengaluru"></div>
+          <div class="field"><label>Country code (Adzuna)</label><input type="text" id="cfg_country" placeholder="in"></div>
+          <div class="field"><label>Salary floor (number)</label><input type="text" id="cfg_salary" placeholder="1800000"></div>
+          <div class="field"><label>Currency</label><input type="text" id="cfg_currency" placeholder="INR"></div>
+          <div class="field"><label>Fit threshold (0–10)</label><input type="text" id="cfg_threshold" placeholder="6"></div>
+        </div>
+
+        <h4 style="margin:14px 0 4px; font-size:13px; color:var(--text);">Free-tier LLM</h4>
+        <div class="form-grid">
+          <div class="field">
+            <label>Provider</label>
+            <select id="cfg_provider">
+              <option value="gemini">Gemini (Google AI Studio — free tier)</option>
+              <option value="groq">Groq (free tier, OpenAI-compatible)</option>
+            </select>
+          </div>
+          <div class="field"><label>Model</label><input type="text" id="cfg_model" placeholder="gemini-1.5-flash"></div>
+        </div>
+
+        <h4 style="margin:14px 0 4px; font-size:13px; color:var(--text);">Education &amp; certifications</h4>
+        <div class="form-grid single">
+          <div class="field"><label>Education</label><input type="text" id="cfg_education" placeholder="Your Degree, Field — University (Start–End)"></div>
+          <div class="field"><label>Certifications (one per line)</label><textarea id="cfg_certs" placeholder="A certification you actually hold"></textarea></div>
+        </div>
+
+        <h4 style="margin:14px 0 4px; font-size:13px; color:var(--text);">Real work experience</h4>
+        <div id="expList"></div>
+        <button class="smallBtn" id="addExpBtn" type="button">+ Add another role</button>
+
+        <div class="formActions">
+          <button class="apply" id="genConfigBtn" type="button">Generate config.json</button>
+          <button class="copybtn" id="downloadConfigBtn" type="button">Download</button>
+          <button class="copybtn" id="copyConfigBtn" type="button">Copy to clipboard</button>
+        </div>
+        <div class="genOutput" id="genOutput"></div>
+      </div>
+
+      <h2 class="sectionHeading" id="matchesHeading">Best matches for you</h2>
+
+      <div class="controls" id="controls">
+        <input class="search" id="searchBox" type="text" placeholder="Search role, company, keyword…">
+      </div>
+
+      <div id="list"></div>
+
+      <div id="cvView">
+        <div class="cvViewActions" style="display:flex; gap:8px; margin-bottom:14px;">
+          <button class="apply" id="printCvBtn" type="button">Print / Save as PDF</button>
+          <button class="copybtn" id="closeCvBtn" type="button">Back to matches</button>
+        </div>
+        <div class="cvPage" id="cvPageContent"></div>
+      </div>
+
+      <footer>Sourced from Adzuna's free-tier job search API. Salary figures are estimates unless a posting discloses pay — verify before relying on them. Verify each listing is still open before applying.<br>Tailored CVs are generated from your own real experience, supplied in Search settings — nothing is invented.<br>Open source under the MIT License — fork it and make it your own.</footer>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var LS_STAGES = "jobradar_stages_v1";
+  var LS_CANDIDATE = "jobradar_candidate_v1";
+  var LS_GH = "jobradar_gh_v1";
+
+  var state = { jobs: [], roleFilter: "all", search: "", nav: "overview", lastRun: null };
+
+  var STAGE_LABELS = {
+    new_match: "New match", shortlisted: "Shortlisted", prepared: "Application prepared",
+    applied: "Applied", followup_due: "Follow-up due", followup_sent: "Follow-up sent",
+    response: "Recruiter response / rejection", interview: "Interview", offer: "Offer",
+    closed: "Closed / withdrawn"
+  };
+  var STAGE_ORDER = ["new_match","shortlisted","prepared","applied","followup_due","followup_sent","response","interview","offer","closed"];
+
+  var ROLE_GROUPS = [
+    {key:"program", label:"Program / Project Mgmt", match:["program manager","project manager","delivery manager","pmo","tpm"]},
+    {key:"ops", label:"Business Ops / Strategy", match:["business operations","strategy","founder","gtm","revenue operations","chief of staff"]},
+    {key:"analyst", label:"Business Analyst", match:["business analyst","data analyst","insights"]},
+    {key:"success", label:"Customer Success / CX", match:["customer success","customer experience","account manager","implementation"]},
+  ];
+
+  // ---------- local storage helpers ----------
+  function lsGet(key, fallback){
+    try{ var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; }
+  }
+  function lsSet(key, value){
+    try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){}
+  }
+
+  function getStageOverrides(){ return lsGet(LS_STAGES, {}); }
+  function setStageOverride(id, stage){
+    var overrides = getStageOverrides();
+    overrides[id] = stage;
+    lsSet(LS_STAGES, overrides);
+  }
+  function stageOf(j){
+    var overrides = getStageOverrides();
+    if (overrides[j.id] && STAGE_LABELS[overrides[j.id]]) return overrides[j.id];
+    if (j.stage && STAGE_LABELS[j.stage]) return j.stage;
+    return "new_match";
+  }
+
+  function esc(s){
+    return String(s==null?"":s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  function daysAgo(iso){
+    if(!iso) return null;
+    var d = new Date(iso);
+    if (isNaN(d)) return null;
+    var diff = Math.floor((Date.now()-d.getTime())/86400000);
+    return diff;
+  }
+
+  function groupFor(role){
+    var r = (role||"").toLowerCase();
+    for (var i=0;i<ROLE_GROUPS.length;i++){
+      var g = ROLE_GROUPS[i];
+      for (var j=0;j<g.match.length;j++){ if (r.indexOf(g.match[j])>-1) return g.key; }
+    }
+    return "ops";
+  }
+
+  function fallbackCopy(text){
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); }catch(e){}
+    document.body.removeChild(ta);
+  }
+  function copyText(btn, text){
+    var done = function(){ var old = btn.textContent; btn.textContent = "Copied"; setTimeout(function(){ btn.textContent = old; }, 1200); };
+    try{ navigator.clipboard.writeText(text).then(done).catch(function(){ fallbackCopy(text); done(); }); }
+    catch(e){ fallbackCopy(text); done(); }
+  }
+
+  function draftEmail(j, candidate){
+    var name = (candidate && candidate.name) || "Applicant";
+    var subject = "Application for " + (j.title||"the role") + " – " + name;
+    var body =
+      "Hi Hiring Team,\n\n" +
+      "I'm writing to apply for the " + (j.title||"role") + " position at " + (j.company||"your company") + ". " +
+      "I'd welcome the chance to discuss how my background fits your team's needs — my tailored resume is attached.\n\n" +
+      "Best regards,\n" + name +
+      ((candidate && candidate.phone) ? "\n" + candidate.phone : "") +
+      ((candidate && candidate.email) ? "\n" + candidate.email : "") +
+      ((candidate && candidate.linkedin) ? "\n" + candidate.linkedin : "");
+    return { subject: subject, body: body };
+  }
+
+  // ---------- nav ----------
+  var NAV_VIEW = { overview:"overview", matches:"overview", applications:"applications", cv:"cv", automation:"automation", settings:"settings" };
+  var NAV_HEADING = { overview:"Best matches for you", matches:"Best matches for you", applications:"Your applications", cv:"CV library" };
+
+  function wireSidebarNav(){
+    var nav = document.getElementById("sidebarNav");
+    if (!nav) return;
+    nav.querySelectorAll(".navitem").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        nav.querySelectorAll(".navitem").forEach(function(b){ b.classList.remove("active"); });
+        btn.classList.add("active");
+        state.nav = btn.dataset.nav;
+        closeCvView();
+        render();
+        if (btn.dataset.nav === "matches"){
+          var heading = document.getElementById("matchesHeading");
+          if (heading) heading.scrollIntoView({behavior:"smooth", block:"start"});
+        }
+      });
+    });
+  }
+
+  // ---------- run now (GitHub workflow_dispatch) ----------
+  function guessRepoFromLocation(){
+    // GitHub Pages project sites: <user>.github.io/<repo>/...
+    var host = location.hostname;
+    if (host.endsWith(".github.io")){
+      var owner = host.replace(".github.io","");
+      var seg = location.pathname.split("/").filter(Boolean)[0];
+      if (seg) return owner + "/" + seg;
+    }
+    return "";
+  }
+
+  function wireRunNowButton(){
+    var btn = document.getElementById("runNowBtn");
+    var status = document.getElementById("runNowStatus");
+    if (!btn) return;
+    btn.addEventListener("click", async function(){
+      var gh = lsGet(LS_GH, {});
+      var repo = gh.repo || guessRepoFromLocation();
+      var token = gh.token;
+      if (!repo || !token){
+        status.textContent = "Set up your repo + token under Automation → Run now first.";
+        nav_goto("automation");
+        return;
+      }
+      btn.disabled = true;
+      status.textContent = "Starting…";
+      try{
+        var res = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/job-search.yml/dispatches", {
+          method: "POST",
+          headers: {
+            "Accept": "application/vnd.github+json",
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ ref: "main" })
+        });
+        if (res.status === 204){
+          status.textContent = "Started — check the Actions tab, then refresh this page in a few minutes.";
+        } else if (res.status === 401 || res.status === 403){
+          status.textContent = "GitHub rejected the token (401/403) — check its scope and expiry.";
+        } else if (res.status === 404){
+          status.textContent = "Workflow or repo not found (404) — check the repo name and that main is the default branch.";
+        } else {
+          status.textContent = "GitHub returned " + res.status + " — see console for details.";
+          console.error("workflow_dispatch failed", res.status, await res.text().catch(function(){return "";}));
+        }
+      }catch(err){
+        status.textContent = "Couldn't reach GitHub from here — check your connection.";
+      }
+      btn.disabled = false;
+      setTimeout(function(){ status.textContent = ""; }, 15000);
+    });
+  }
+
+  function nav_goto(navKey){
+    var nav = document.getElementById("sidebarNav");
+    var btn = nav && nav.querySelector('[data-nav="'+navKey+'"]');
+    if (btn) btn.click();
+  }
+
+  function wireGhSettings(){
+    var gh = lsGet(LS_GH, {});
+    var repoInput = document.getElementById("ghRepo");
+    var tokenInput = document.getElementById("ghToken");
+    if (repoInput) repoInput.value = gh.repo || guessRepoFromLocation();
+    if (tokenInput) tokenInput.value = gh.token || "";
+    var saveBtn = document.getElementById("saveGhSettings");
+    var statusEl = document.getElementById("ghSaveStatus");
+    if (saveBtn) saveBtn.addEventListener("click", function(){
+      lsSet(LS_GH, { repo: repoInput.value.trim(), token: tokenInput.value.trim() });
+      statusEl.textContent = "Saved to this browser.";
+      setTimeout(function(){ statusEl.textContent = ""; }, 2000);
+    });
+  }
+
+  // ---------- settings / config generator ----------
+  var expCount = 0;
+  function addExpBlock(prefill){
+    var container = document.getElementById("expList");
+    var idx = expCount++;
+    var wrap = document.createElement("div");
+    wrap.className = "expBlock";
+    wrap.dataset.idx = idx;
+    wrap.innerHTML =
+      '<div class="expHead"><b>Role</b><button class="smallBtn danger" type="button" data-remove-exp>Remove</button></div>' +
+      '<div class="form-grid">' +
+        '<div class="field"><label>Company</label><input type="text" data-f="company" placeholder="Company Name"></div>' +
+        '<div class="field"><label>Role title</label><input type="text" data-f="role" placeholder="Your Role Title"></div>' +
+        '<div class="field"><label>Location</label><input type="text" data-f="location" placeholder="City, Country"></div>' +
+        '<div class="field"><label>Dates</label><input type="text" data-f="dates" placeholder="Mon YYYY – Present"></div>' +
+      '</div>' +
+      '<div class="field"><label>Real accomplishments (one per line — the AI will only reorder/reword these)</label>' +
+        '<textarea data-f="bullets" placeholder="A real, truthful accomplishment from this role."></textarea></div>';
+    container.appendChild(wrap);
+    wrap.querySelector("[data-remove-exp]").addEventListener("click", function(){ wrap.remove(); });
+    if (prefill){
+      wrap.querySelector('[data-f="company"]').value = prefill.company||"";
+      wrap.querySelector('[data-f="role"]').value = prefill.role||"";
+      wrap.querySelector('[data-f="location"]').value = prefill.location||"";
+      wrap.querySelector('[data-f="dates"]').value = prefill.dates||"";
+      wrap.querySelector('[data-f="bullets"]').value = (prefill.bullets||[]).join("\n");
+    }
+  }
+
+  function collectConfig(){
+    var titles = document.getElementById("cfg_titles").value.split(",").map(function(s){return s.trim();}).filter(Boolean);
+    var certs = document.getElementById("cfg_certs").value.split("\n").map(function(s){return s.trim();}).filter(Boolean);
+    var experience = [];
+    document.querySelectorAll("#expList .expBlock").forEach(function(block){
+      var bullets = block.querySelector('[data-f="bullets"]').value.split("\n").map(function(s){return s.trim();}).filter(Boolean);
+      experience.push({
+        company: block.querySelector('[data-f="company"]').value.trim(),
+        role: block.querySelector('[data-f="role"]').value.trim(),
+        location: block.querySelector('[data-f="location"]').value.trim(),
+        dates: block.querySelector('[data-f="dates"]').value.trim(),
+        bullets: bullets
+      });
+    });
+    return {
+      candidate: {
+        name: document.getElementById("cfg_name").value.trim(),
+        email: document.getElementById("cfg_email").value.trim(),
+        phone: document.getElementById("cfg_phone").value.trim(),
+        linkedin: document.getElementById("cfg_linkedin").value.trim()
+      },
+      search: {
+        titles: titles,
+        location: document.getElementById("cfg_location").value.trim(),
+        country: document.getElementById("cfg_country").value.trim().toLowerCase() || "in",
+        salaryFloor: Number(document.getElementById("cfg_salary").value) || 0,
+        currency: document.getElementById("cfg_currency").value.trim() || "INR"
+      },
+      scoring: { fitThreshold: Number(document.getElementById("cfg_threshold").value) || 6 },
+      llm: {
+        provider: document.getElementById("cfg_provider").value,
+        model: document.getElementById("cfg_model").value.trim() || "gemini-1.5-flash"
+      },
+      profile: {
+        education: document.getElementById("cfg_education").value.trim(),
+        certifications: certs,
+        experience: experience
+      }
+    };
+  }
+
+  function wireSettingsForm(){
+    document.getElementById("addExpBtn").addEventListener("click", function(){ addExpBlock(); });
+    addExpBlock(); // start with one blank block
+
+    // remember candidate basics for email drafts + greeting, on every keystroke in those fields
+    ["cfg_name","cfg_email","cfg_phone","cfg_linkedin"].forEach(function(id){
+      document.getElementById(id).addEventListener("input", saveCandidateBasicsFromForm);
+    });
+
+    var saved = lsGet(LS_CANDIDATE, null);
+    if (saved){
+      document.getElementById("cfg_name").value = saved.name||"";
+      document.getElementById("cfg_email").value = saved.email||"";
+      document.getElementById("cfg_phone").value = saved.phone||"";
+      document.getElementById("cfg_linkedin").value = saved.linkedin||"";
+    }
+
+    document.getElementById("genConfigBtn").addEventListener("click", function(){
+      var cfg = collectConfig();
+      var out = document.getElementById("genOutput");
+      out.textContent = JSON.stringify(cfg, null, 2);
+      out.classList.add("open");
+      saveCandidateBasicsFromForm();
+      updateGreeting();
+    });
+    document.getElementById("downloadConfigBtn").addEventListener("click", function(){
+      var cfg = collectConfig();
+      var blob = new Blob([JSON.stringify(cfg, null, 2)], { type: "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "config.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+    document.getElementById("copyConfigBtn").addEventListener("click", function(){
+      copyText(document.getElementById("copyConfigBtn"), JSON.stringify(collectConfig(), null, 2));
+    });
+  }
+
+  function saveCandidateBasicsFromForm(){
+    lsSet(LS_CANDIDATE, {
+      name: document.getElementById("cfg_name").value.trim(),
+      email: document.getElementById("cfg_email").value.trim(),
+      phone: document.getElementById("cfg_phone").value.trim(),
+      linkedin: document.getElementById("cfg_linkedin").value.trim()
+    });
+  }
+
+  function updateGreeting(){
+    var c = lsGet(LS_CANDIDATE, null);
+    var el = document.getElementById("greeting");
+    if (el) el.textContent = (c && c.name) ? ("Welcome back, " + c.name) : "Welcome";
+  }
+
+  // ---------- CV view ----------
+  function openCvView(job){
+    var cv = job.cv;
+    if (!cv) return;
+    var el = document.getElementById("cvPageContent");
+    var candidate = lsGet(LS_CANDIDATE, {});
+    var contactBits = [candidate.email, candidate.phone, candidate.linkedin].filter(Boolean).join("  |  ");
+    var html = "";
+    html += '<div class="cvName">' + esc(candidate.name || "Your Name") + '</div>';
+    html += '<div class="cvHeadline">' + esc(cv.headline||"") + '</div>';
+    if (contactBits) html += '<div class="cvContact">' + esc(contactBits) + '</div>';
+    html += '<h4>Summary</h4><p>' + esc(cv.summary||"") + '</p>';
+    if (cv.competencies) html += '<h4>Core Competencies</h4><p>' + esc(cv.competencies) + '</p>';
+    html += '<h4>Experience</h4>';
+    (cv.experience||[]).forEach(function(job2){
+      html += '<div class="cvJobHead">' + esc(job2.company||"") + (job2.role ? " — " + esc(job2.role) : "") + '</div>';
+      html += '<div class="cvJobMeta">' + esc(job2.location||"") + '    ' + esc(job2.dates||"") + '</div>';
+      if ((job2.bullets||[]).length){
+        html += "<ul>" + job2.bullets.map(function(b){ return "<li>" + esc(b) + "</li>"; }).join("") + "</ul>";
+      }
+    });
+    if (cv.education) html += '<h4>Education</h4><p>' + esc(cv.education) + '</p>';
+    if ((cv.certifications||[]).length){
+      html += "<h4>Certifications</h4><ul>" + cv.certifications.map(function(c2){ return "<li>" + esc(c2) + "</li>"; }).join("") + "</ul>";
+    }
+    el.innerHTML = html;
+
+    document.getElementById("cvView").classList.add("open");
+    ["automationPanel","runNowPanel","settingsPanel","matchesHeading","controls","list"].forEach(function(id){
+      var e = document.getElementById(id); if (e) e.hidden = true;
+    });
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+  function closeCvView(){
+    var cv = document.getElementById("cvView");
+    if (cv) cv.classList.remove("open");
+  }
+  function wireCvView(){
+    document.getElementById("printCvBtn").addEventListener("click", function(){ window.print(); });
+    document.getElementById("closeCvBtn").addEventListener("click", function(){
+      closeCvView();
+      nav_goto("matches");
+    });
+  }
+
+  // ---------- main render ----------
+  function render(){
+    var view = NAV_VIEW[state.nav] || "overview";
+    closeCvView();
+
+    var total = state.jobs.length;
+    var fresh = state.jobs.filter(function(j){ var d=daysAgo(j.postedAt); return d!==null && d<=3; }).length;
+    var cvReady = state.jobs.filter(function(j){ return !!j.cv; }).length;
+    var awaitingAction = state.jobs.filter(function(j){ var s=stageOf(j); return s==="new_match"||s==="shortlisted"||s==="followup_due"; }).length;
+    document.getElementById("stats").innerHTML =
+      '<div class="stat"><div class="n">'+total+'</div><div class="l">Open roles tracked</div></div>' +
+      '<div class="stat"><div class="n">'+fresh+'</div><div class="l">Posted in last 3 days</div></div>' +
+      '<div class="stat"><div class="n">'+cvReady+'</div><div class="l">Tailored CVs ready</div></div>' +
+      '<div class="stat"><div class="n">'+awaitingAction+'</div><div class="l">Awaiting your action</div></div>';
+
+    var automationPanel = document.getElementById("automationPanel");
+    var runNowPanel = document.getElementById("runNowPanel");
+    var settingsPanel = document.getElementById("settingsPanel");
+    var matchesHeading = document.getElementById("matchesHeading");
+    var controlsEl = document.getElementById("controls");
+    var listWrap = document.getElementById("list");
+    var showListArea = (view !== "automation" && view !== "settings");
+    if (automationPanel) automationPanel.hidden = (view !== "automation");
+    if (runNowPanel) runNowPanel.hidden = (view !== "automation");
+    if (settingsPanel) settingsPanel.hidden = (view !== "settings");
+    if (matchesHeading){ matchesHeading.hidden = !showListArea; matchesHeading.textContent = NAV_HEADING[state.nav] || "Best matches for you"; }
+    if (controlsEl) controlsEl.hidden = !showListArea;
+    if (listWrap) listWrap.hidden = !showListArea;
+    if (!showListArea) return;
+
+    var jobs = state.jobs.slice();
+    if (view === "applications"){
+      jobs = jobs.filter(function(j){ var s = stageOf(j); return s!=="new_match" && s!=="shortlisted" && s!=="prepared"; });
+    } else if (view === "cv"){
+      jobs = jobs.filter(function(j){ return !!j.cv; });
+    }
+    if (state.roleFilter !== "all") jobs = jobs.filter(function(j){ return groupFor(j.title)===state.roleFilter; });
+    if (state.search){
+      var q = state.search.toLowerCase();
+      jobs = jobs.filter(function(j){
+        var hay = [j.title,j.company,j.location].join(" ").toLowerCase();
+        return hay.indexOf(q) > -1;
+      });
+    }
+    jobs.sort(function(a,b){ return (b.fitScore||-1) - (a.fitScore||-1); });
+
+    var controls = document.getElementById("controls");
+    if (!controls.dataset.built){
+      var chipsHtml = '<button class="chip" data-role="all" aria-pressed="true">All roles</button>';
+      ROLE_GROUPS.forEach(function(g){
+        chipsHtml += '<button class="chip" data-role="'+g.key+'" aria-pressed="false">'+esc(g.label)+'</button>';
+      });
+      controls.insertAdjacentHTML("afterbegin", chipsHtml);
+      controls.dataset.built = "1";
+      controls.querySelectorAll(".chip").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          controls.querySelectorAll(".chip").forEach(function(b){ b.setAttribute("aria-pressed","false"); });
+          btn.setAttribute("aria-pressed","true");
+          state.roleFilter = btn.dataset.role;
+          render();
+        });
+      });
+    }
+
+    var list = document.getElementById("list");
+    if (!jobs.length){
+      var emptyMsg =
+        view === "applications" ? "No applications tracked yet — move a match's stage past \"New match\" once you apply, and it'll show up here." :
+        view === "cv" ? "No tailored CVs generated yet. They're created automatically for matches at or above your fit threshold — check back after the next scheduled run." :
+        (state.lastRun ? "No openings match this filter yet. Widen the filter, or wait for the next scheduled run." :
+          "No data yet — this dashboard is waiting on its first GitHub Actions run. See the Automation tab to set it up or trigger one now.");
+      list.innerHTML = '<div class="empty">'+emptyMsg+'</div>';
+      return;
+    }
+
+    var candidate = lsGet(LS_CANDIDATE, {});
+
+    list.innerHTML = jobs.map(function(j){
+      var d = daysAgo(j.postedAt);
+      var isNew = d !== null && d <= 3;
+
+      var mail = draftEmail(j, candidate);
+      var mailtoHref = "mailto:?subject=" + encodeURIComponent(mail.subject) + "&body=" + encodeURIComponent(mail.body);
+
+      var stageVal = stageOf(j);
+      var stageOptions = STAGE_ORDER.map(function(k){
+        return '<option value="'+k+'"'+(k===stageVal?" selected":"")+'>'+STAGE_LABELS[k]+'</option>';
+      }).join("");
+
+      var salaryLine;
+      if (j.salaryDisclosed && (j.salaryMin || j.salaryMax)){
+        salaryLine = esc((j.salaryMin||"") + (j.salaryMax && j.salaryMax!==j.salaryMin ? "–"+j.salaryMax : ""));
+      } else {
+        salaryLine = "Salary not disclosed";
+      }
+      var belowFloorBadge = j.salaryFlag === "below_floor" ? '<span class="badge watch">Below your salary floor</span>' : "";
+
+      var cvBlock = j.cv ? '<button class="copybtn" data-action="view-cv">View / print CV</button>' : "";
+
+      var fitTier = j.fitScore>=8 ? "high" : (j.fitScore>=6 ? "mid" : "low");
+      var fitPill = '<span class="fitPill '+fitTier+'">'+esc(j.fitScore==null?"—":j.fitScore)+'/10 fit</span>';
+      var sourceTag = j.source ? '<span class="tag">'+esc(j.source)+'</span>' : "";
+
+      return '<div class="card" data-id="'+esc(j.id)+'">' +
+        '<div class="row1">' +
+          '<div class="titles"><div class="role">'+esc(j.title)+'</div><div class="company">'+esc(j.company)+'</div></div>' +
+          '<div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">' +
+            (isNew ? '<span class="badge new">New</span>' : '') +
+            belowFloorBadge + fitPill +
+          '</div>' +
+        '</div>' +
+        '<div class="meta"><span>'+esc(j.location||"")+'</span><span>'+(d===null? "" : (d===0?"Posted today":"Posted "+d+"d ago"))+'</span><span>'+salaryLine+'</span></div>' +
+        (sourceTag ? '<div class="tags">'+sourceTag+'</div>' : '') +
+        (j.fitReason ? '<div class="fitReason">'+esc(j.fitReason)+'</div>' : '') +
+        '<div class="actions">' +
+          '<a class="apply" href="'+esc(j.url||"#")+'" target="_blank" rel="noopener">Apply / view posting</a>' +
+          '<button class="copybtn" data-action="toggle-email">Draft email</button>' +
+          cvBlock +
+          '<select class="statusSelect '+stageVal+'" data-action="status">'+stageOptions+'</select>' +
+        '</div>' +
+        '<div class="emailPanel" data-panel="email">' +
+          '<div><label>To</label><input type="text" data-field="to" value="" placeholder="Paste the hiring contact\'s email if you found one"></div>' +
+          '<div><label>Subject</label><input type="text" data-field="subject" value="'+esc(mail.subject)+'"></div>' +
+          '<div><label>Body</label><textarea data-field="body">'+esc(mail.body)+'</textarea></div>' +
+          '<div class="emailActions">' +
+            '<a class="apply" data-mailto-link href="'+esc(mailtoHref)+'">Open in email app</a>' +
+            '<button class="copybtn" data-action="copy-email">Copy email text</button>' +
+          '</div>' +
+          '<div class="emailNote">Opens a draft in your device\'s own mail app. Nothing is sent from here, and your CV isn\'t attached automatically — attach it yourself.</div>' +
+        '</div>' +
+      '</div>';
+    }).join("");
+
+    list.querySelectorAll('[data-action="view-cv"]').forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var id = btn.closest(".card").dataset.id;
+        var job = state.jobs.find(function(j){ return j.id===id; });
+        if (job) openCvView(job);
+      });
+    });
+
+    list.querySelectorAll('[data-action="toggle-email"]').forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var card = btn.closest(".card");
+        var panel = card.querySelector('[data-panel="email"]');
+        panel.classList.toggle("open");
+      });
+    });
+
+    list.querySelectorAll('[data-action="copy-email"]').forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var panel = btn.closest(".emailPanel");
+        var to = panel.querySelector('[data-field="to"]').value;
+        var subject = panel.querySelector('[data-field="subject"]').value;
+        var body = panel.querySelector('[data-field="body"]').value;
+        var text = (to ? "To: "+to+"\n" : "") + "Subject: "+subject+"\n\n"+body;
+        copyText(btn, text);
+      });
+    });
+
+    list.querySelectorAll('[data-mailto-link]').forEach(function(link){
+      link.addEventListener("click", function(){
+        var card = link.closest(".card");
+        var panel = card.querySelector('[data-panel="email"]');
+        var to = panel.querySelector('[data-field="to"]').value;
+        var subject = panel.querySelector('[data-field="subject"]').value;
+        var body = panel.querySelector('[data-field="body"]').value;
+        link.setAttribute("href", "mailto:"+encodeURIComponent(to)+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body));
+      });
+    });
+
+    list.querySelectorAll('[data-action="status"]').forEach(function(sel){
+      sel.addEventListener("change", function(){
+        var card = sel.closest(".card");
+        var id = card.dataset.id;
+        var newVal = sel.value;
+        sel.className = "statusSelect " + newVal;
+        setStageOverride(id, newVal);
+      });
+    });
+  }
+
+  document.getElementById("searchBox").addEventListener("input", function(e){
+    state.search = e.target.value.trim();
+    render();
+  });
+
+  function setRefreshNote(){
+    var el = document.getElementById("refreshNoteText");
+    var banner = document.getElementById("autoBanner");
+    var bannerText = document.getElementById("autoBannerText");
+    if (!state.lastRun){
+      if (el) el.innerHTML = "No scheduled run yet";
+      if (banner) banner.classList.add("warn");
+      if (bannerText) bannerText.textContent = "Not set up yet — see the Automation tab";
+      return;
+    }
+    var d = new Date(state.lastRun);
+    if (el) el.innerHTML = "Last synced <strong>"+d.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'})+"</strong><br>Auto-refreshes every 6 hours";
+    if (banner) banner.classList.remove("warn");
+    if (bannerText) bannerText.textContent = "Auto search is on — every 6 hours";
+  }
+
+  async function loadJobs(){
+    try{
+      var res = await fetch("./data/jobs.json", { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      var data = await res.json();
+      state.jobs = data.jobs || [];
+      state.lastRun = data.lastRun || null;
+    }catch(e){
+      state.jobs = [];
+      state.lastRun = null;
+    }
+    setRefreshNote();
+    render();
+  }
+
+  function boot(){
+    updateGreeting();
+    wireSidebarNav();
+    wireRunNowButton();
+    wireGhSettings();
+    wireSettingsForm();
+    wireCvView();
+    render();
+    loadJobs();
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
